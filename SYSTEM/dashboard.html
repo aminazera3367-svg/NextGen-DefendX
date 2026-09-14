@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NextGen DefendX - Unified SOC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0a0f1e; }
+        .terminal-box { 
+            background: #000000; 
+            color: #00ff00; 
+            font-family: 'Courier New', monospace; 
+            border: 1px solid #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+        }
+        .glow-border { 
+            border: 1px solid #10b981; 
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); 
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen p-4 md:p-8">
+
+    <header class="text-center mb-10">
+        <h1 class="text-4xl font-extrabold text-emerald-400 tracking-widest uppercase">
+            NextGen DefendX
+        </h1>
+        <p class="text-gray-400 mt-2 font-mono">Autonomous Attack Prediction & Remediation System</p>
+    </header>
+
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <section class="bg-gray-800 p-6 rounded-xl glow-border">
+            <h2 class="text-xl font-bold mb-4 text-emerald-300 flex items-center">
+                <span class="mr-2">🛡️</span> Security Incident Input
+            </h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Target Asset</label>
+                    <input type="text" id="asset" placeholder="e.g. Windows-Server-01, Apache-Web" 
+                           class="w-full bg-gray-900 border border-gray-700 p-3 rounded text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Incident Description (Raw Log/Event)</label>
+                    <textarea id="event" rows="5" placeholder="e.g. multiple failed logins followed by successful admin access via port 445" 
+                              class="w-full bg-gray-900 border border-gray-700 p-3 rounded text-white focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+
+                <button onclick="analyze()" 
+                        class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition duration-300 uppercase tracking-widest shadow-lg">
+                    Run Unified Analysis
+                </button>
+            </div>
+        </section>
+
+        <section id="output-section" class="bg-gray-800 p-6 rounded-xl glow-border hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-emerald-300">🧠 AI Analysis Result</h2>
+                <span id="risk-badge" class="px-3 py-1 rounded text-xs font-bold uppercase"></span>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-tighter">Attack Summary</h3>
+                    <p id="summary-text" class="text-gray-200 mt-1 italic"></p>
+                </div>
+
+                <div class="p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                    <h3 class="text-sm font-bold text-red-400 uppercase tracking-tighter">⚠️ Attack Prediction (Next Move)</h3>
+                    <p id="prediction-text" class="text-white mt-1 font-semibold"></p>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-blue-400 uppercase tracking-tighter">⚙️ Recommended Remediation</h3>
+                    <div id="command-box" class="terminal-box mt-2 p-4 rounded text-sm overflow-x-auto whitespace-pre-wrap"></div>
+                </div>
+
+                <div class="flex justify-between text-xs text-gray-500 font-mono pt-4 border-t border-gray-700">
+                    <span id="confidence-text">Confidence: 0%</span>
+                    <span>Status: Analyzed by Llama3</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        async function analyze() {
+            const assetValue = document.getElementById('asset').value;
+            const eventValue = document.getElementById('event').value;
+            const outputBox = document.getElementById('output-section');
+            
+            if (!assetValue || !eventValue) {
+                alert("Missing Input: Please define both the asset and the event.");
+                return;
+            }
+
+            // UI Feedback
+            outputBox.classList.remove('hidden');
+            document.getElementById('prediction-text').innerText = "Processing patterns...";
+            document.getElementById('summary-text').innerText = "Querying System 1 (Detection) and System 2 (Intel)...";
+            document.getElementById('command-box').innerText = "Generating remediation script...";
+
+            const url = `http://127.0.0.1:8001/analyze_full?asset=${encodeURIComponent(assetValue)}&event_text=${encodeURIComponent(eventValue)}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error('API request failed.');
+
+                const data = await response.json();
+                console.log("Success:", data);
+
+                // Use the prediction_report field from our Python code
+                const ai = data.prediction_report;
+
+                // Update UI Fields
+                document.getElementById('summary-text').innerText = ai.attack_summary || "N/A";
+                document.getElementById('prediction-text').innerText = ai.attack_prediction || "N/A";
+                document.getElementById('command-box').innerText = ai.remediation_console_command || "Manual action required.";
+                
+                const confidence = ai.confidence ? (ai.confidence * 100).toFixed(1) : 0;
+                document.getElementById('confidence-text').innerText = `Confidence: ${confidence}%`;
+
+                // Risk Badge logic
+                const risk = (ai.risk_level || "UNKNOWN").toUpperCase();
+                const badge = document.getElementById('risk-badge');
+                badge.innerText = risk;
+                
+                if (risk === 'CRITICAL' || risk === 'HIGH') {
+                    badge.className = "px-3 py-1 rounded text-xs font-bold uppercase bg-red-600 text-white";
+                } else {
+                    badge.className = "px-3 py-1 rounded text-xs font-bold uppercase bg-yellow-500 text-black";
+                }
+
+            } catch (error) {
+                console.error("Connection Error:", error);
+                document.getElementById('prediction-text').innerHTML = "<span class='text-red-500'>Connection Failed</span>";
+                document.getElementById('summary-text').innerText = "Error: Ensure the AI System (Port 8001) is running.";
+                document.getElementById('command-box').innerText = "Check your python console for errors.";
+            }
+        }
+    </script>
+</body>
+</html>

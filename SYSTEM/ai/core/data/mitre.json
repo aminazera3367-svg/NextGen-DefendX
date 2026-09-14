@@ -1,0 +1,9 @@
+{
+  "T1078": {"name": "Valid Accounts", "tactic": "Initial Access"},
+  "T1068": {"name": "Privilege Escalation", "tactic": "Privilege Escalation"},
+  "T1565": {"name": "Data Manipulation", "tactic": "Impact"},
+  "T1070": {"name": "Indicator Removal", "tactic": "Defense Evasion"},
+  "T1005": {"name": "Data from Local System", "tactic": "Collection"},
+  "T1499": {"name": "Endpoint Denial of Service", "tactic": "Impact"},
+  "T1110": {"name": "Brute Force", "tactic": "Credential Access"}
+}
